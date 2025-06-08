@@ -267,14 +267,14 @@ function App() {
   const filteredChats = React.useMemo(() => {
     if (!chats || !debouncedSearchTerm) {
       // Wenn keine Chats oder kein Suchbegriff vorhanden ist, gib alle Chats zurück
-      return chats;
+      return chats.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
 
     const term = debouncedSearchTerm.toLowerCase();
     return chats.filter(chat =>
       chat.title.toLowerCase().includes(term) ||
       chat.messages.some(msg => msg.content.toLowerCase().includes(term))
-    );
+    ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }, [chats, debouncedSearchTerm]);
 
   const showError = (msg) => {

@@ -19,17 +19,17 @@ async function initDbs() {
         name: "userId-createdAt-index",
         type: "json"
       });
-    
-    await couch.use(chatsDbName).createIndex({
-        index: { fields: ["chatId", "createdAt"] },
-        name: "chatId-index",
-        type: "json"
-    });
 
     if (!dbList.includes(messagesDbName)) {
         await couch.db.create(messagesDbName);
         console.log(`DB ${messagesDbName} erstellt`);
     }
+
+    await couch.use(messagesDbName).createIndex({
+        index: { fields: ["chatId", "createdAt"] },
+        name: "chatId-createdAt-index",
+        type: "json"
+    });
 
     if (!dbList.includes(usersDbName)) {
         await couch.db.create(usersDbName);
@@ -37,8 +37,8 @@ async function initDbs() {
     }
 
     await couch.use(usersDbName).createIndex({
-        index: { fields: ["chatId", "createdAt"] },
-        name: "chatId-index",
+        index: { fields: ["username"] },
+        name: "username-index",
         type: "json"
     });
 }
