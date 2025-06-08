@@ -3,7 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import OpenAI from "openai";
 import bodyParser from "body-parser";
-import { loginRoute, authenticate } from "./auth.js";
+import { loginRoute, authenticate, registerRoute } from "./auth.js";
 
 import {
     initDbs,
@@ -37,23 +37,23 @@ initDbs().catch(err => {
     process.exit(1);
 });
 
+app.post("/auth/register", registerRoute); 
 app.post("/auth/login", loginRoute);
 
 app.use("/chats", authenticate);
 
 // Chats laden
 app.get("/chats", async (req, res) => {
-    const chats = await getChats();
+    const chats = await getChats(req.user.userId);
     res.json(chats);
 });
 
 // Chat anlegen
 app.post("/chats", async (req, res) => {
     const { title, model } = req.body;
-    if (!title) return res.status(400).json({ error: "Title fehlt" });
-    if (!model) return res.status(400).json({ error: "Model fehlt" });
+    if (!title || !model) return res.status(400).json({ error: "Title und Model erforderlich" });
 
-    const newChat = await createChat(title, model);
+    const newChat = await createChat(title, model, req.user.userId);
     res.status(201).json(newChat);
 });
 
@@ -92,7 +92,7 @@ app.delete("/chats/:id", async (req, res) => {
 // Nachrichten für Chat laden
 app.get("/chats/:id/messages", async (req, res) => {
     const chatId = req.params.id;
-    const chatExists = await getChatById(chatId);
+    const chatExists = await getChatById(chatId, req.user.userId);
     if (!chatExists) return res.status(404).json({ error: "Chat nicht gefunden" });
 
     const chatMessages = await getMessages(chatId);
@@ -105,7 +105,7 @@ app.post("/chats/:id/messages", async (req, res) => {
     const { role, content } = req.body;
     if (!role || !content) return res.status(400).json({ error: "role und content sind erforderlich" });
 
-    const chatExists = await getChatById(chatId);
+    const chatExists = await getChatById(chatId, req.user.userId);
     if (!chatExists) return res.status(404).json({ error: "Chat nicht gefunden" });
 
     const model = await chatExists.model;

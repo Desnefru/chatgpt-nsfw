@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import Login from "./Login";
+import Register from "./Register";
 import "./App.css";
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
   const [errorMessage, setErrorMessage] = useState(null);
   const [token, setToken] = useState(localStorage.getItem("jwt")); // Token aus localStorage holen
   const [username, setUsername] = useState(localStorage.getItem("username"));
+  const [showRegister, setShowRegister] = useState(false);
   const chatWindowRef = useRef(null);
   const inputRef = React.useRef(null);
 
@@ -282,7 +284,17 @@ function App() {
 
   // Wenn kein Token vorhanden ist, zeige die Login-Seite
   if (!token) {
-    return <Login onLogin={(newToken, username) => { setToken(newToken); setUsername(username) }} />;
+    return showRegister ? (
+      <Register
+        onRegister={() => setShowRegister(false)}  // Nach Registrierung zum Login wechseln
+        onCancel={() => setShowRegister(false)}   // Abbrechen ebenfalls zurück zum Login
+      />
+    ) : (
+      <Login
+        onLogin={(newToken, username) => { setToken(newToken); setUsername(username); }}
+        onShowRegister={() => setShowRegister(true)} // Zum Registrieren wechseln
+      />
+    );
   }
 
   return (

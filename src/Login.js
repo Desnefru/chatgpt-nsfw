@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-function Login({ onLogin }) {
+function Login({ onLogin, onShowRegister }) {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
 
@@ -58,8 +58,12 @@ function Login({ onLogin }) {
                     />
                 </div>
 
-                <button className="login-button" onClick={handleLogin}>
+                <button style={{ marginBottom: "16px" }} className="login-button" onClick={handleLogin}>
                     Login
+                </button>
+
+                <button className="register-button" onClick={onShowRegister}>
+                    Neu registrieren
                 </button>
             </div>
         </div>
