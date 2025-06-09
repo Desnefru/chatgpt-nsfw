@@ -50,4 +50,4 @@ Das Backend sollte eine REST-API bereitstellen, die folgende Endpunkte unterstü
     Stelle sicher, dass das Backend läuft und die Umgebungsvariablen korrekt gesetzt sind. Erstelle eine .env-Datei im Projektverzeichnis:
 
 3. **Backend starten:**
-    npm start
+    node index.js
