@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import OpenAI from "openai";
+import { GoogleGenAI } from "@google/genai";
 import bodyParser from "body-parser";
 import { loginRoute, authenticate, registerRoute } from "./auth.js";
 
@@ -17,6 +18,7 @@ import {
     updateChatModel,
     getChatModel,
 } from "./couchRepository.js";
+import { use } from "react";
 
 dotenv.config();
 
@@ -27,9 +29,23 @@ app.use(cors());
 app.use(express.json());
 app.use(bodyParser.json());
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+if (process.env.OPENAI_API_KEY && process.env.GOOGLE_GEN_AI_API_KEY) {
+    console.error("Kein OpenAI oder GoogleGenAI API Key konfiguriert!");
+    process.exit(1);
+}
+
+let ai = null;
+let useGoogleGenAI = false;
+if (process.env.GOOGLE_GEN_AI_API_KEY) {
+    ai = new GoogleGenAI({
+        apiKey: process.env.GOOGLE_GEN_AI_API_KEY
+    });
+    useGoogleGenAI = true;
+} else if (process.env.OPENAI_API_KEY) {
+    ai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+    });
+}
 
 // CouchDB initialisieren
 initDbs().catch(err => {
@@ -37,7 +53,7 @@ initDbs().catch(err => {
     process.exit(1);
 });
 
-app.post("/auth/register", registerRoute); 
+app.post("/auth/register", registerRoute);
 app.post("/auth/login", loginRoute);
 
 app.use("/chats", authenticate);
@@ -117,20 +133,32 @@ app.post("/chats/:id/messages", async (req, res) => {
             // Alle Nachrichten des Chats laden
             const chatMessages = await getMessages(chatId);
             // Für OpenAI nur role + content
-            const openAIMessages = chatMessages.slice(-10).map(({ role, content }) => ({ role, content }));
+            const aiMessages = chatMessages.slice(-10).map(({ role, content }) => ({ role, content }));
 
-            const completion = await openai.chat.completions.create({
-                model: model,
-                messages: openAIMessages,
-            });
+            let botResponse;
+            if (useGoogleGenAI) {
+                const completion = await ai.models.generateContent({
+                    model: "gemini-2.0-flash",
+                    contents: "Explain how AI works in a few words",
+                });
+                const parts = completion.candidates[0].content.parts;
+                const fullText = parts.map(part => part.text || part.value || "").join("");
+                botResponse = { role: "model", content: fullText };
+            }
+            else {
+                const completion = await ai.chat.completions.create({
+                    model: model,
+                    messages: aiMessages,
+                });
+                botResponse = completion.choices[0].message;
+            }
 
-            const botResponse = completion.choices[0].message;
             // Bot-Nachricht speichern
             const botMsg = await createMessage(chatId, botResponse.role, botResponse.content);
 
             const messages = await getMessages(chatId);
             if (messages.length === 2) {
-                const contextMessages = openAIMessages.slice(0, 2)  // Beispiel: 2 user + 2 bot Nachrichten
+                const contextMessages = aiMessages.slice(0, 2)  // Beispiel: 2 user + 2 bot Nachrichten
 
                 const summaryPrompt = [
                     {
