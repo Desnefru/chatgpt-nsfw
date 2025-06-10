@@ -41,6 +41,12 @@ async function initDbs() {
         name: "username-index",
         type: "json"
     });
+
+    await couch.use(usersDbName).createIndex({
+        index: { fields: ["email"] },
+        name: "email-index",
+        type: "json"
+    });
 }
 
 const chatsDb = couch.use(chatsDbName);
@@ -156,8 +162,9 @@ export async function deleteMessage(id) {
 }
 
 // Nutzer anlegen
-export async function createUser({ username, passwordHash }) {
+export async function createUser({ email, username, passwordHash }) {
     const user = {
+        email,
         username,
         passwordHash,
         createdAt: new Date().toISOString(),
@@ -171,6 +178,14 @@ export async function createUser({ username, passwordHash }) {
 export async function getUserByUsername(username) {
     const result = await usersDb.find({
         selector: { username }
+    });
+    return result.docs[0] || null;
+}
+
+// Nutzer anhand des Benutzernamens abrufen
+export async function getUserByEmail(email) {
+    const result = await usersDb.find({
+        selector: { email }
     });
     return result.docs[0] || null;
 }

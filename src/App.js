@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import Login from "./Login";
 import Register from "./Register";
+import ReactMarkdown from "react-markdown";
 import "./App.css";
 
 function App() {
@@ -133,7 +134,7 @@ function App() {
   };
 
   // Nachricht senden (User -> Backend -> OpenAI -> Antwort speichern)
-  const sendToOpenAI = async () => {
+  const sendToAI = async () => {
     if (!userInput.trim() || !activeChatId) return;
 
     setLoading(true);
@@ -145,18 +146,12 @@ function App() {
         body: JSON.stringify({ role: "user", content: userInput }),
       });
       if (!userResp.ok) throw new Error("Fehler beim Senden der Nachricht");
-      await userResp.json();
+      const resp = await userResp.json();
+      activeChat.messages.push(resp.usrMsg); // Nutzer-Nachricht im aktiven Chat speichern
+      activeChat.messages.push(resp.botMsg); // Nutzer-Nachricht im aktiven Chat speichern
+      if(resp.newTitle !== "")
+        activeChat.title = resp.newTitle; // Chat-Titel aktualisieren, falls vom Backend zurückgegeben
 
-      // Alle Nachrichten neu laden
-      const messagesResp = await authFetch(`${backendUrl}/chats/${activeChatId}/messages`);
-      if (!messagesResp.ok) throw new Error("Fehler beim Laden der Nachrichten");
-      const allMessages = await messagesResp.json();
-
-      setChats((prevChats) =>
-        prevChats.map((chat) =>
-          chat.id === activeChatId ? { ...chat, messages: allMessages } : chat
-        )
-      );
       setUserInput("");
     } catch (e) {
       showError(e.message);
@@ -452,7 +447,7 @@ function App() {
                     onClick={() => setActiveChatId(chat.id)}
                     style={{ cursor: "pointer", flexGrow: 1, userSelect: "none" }}
                   >
-                    {chat.title}
+                    <ReactMarkdown>{chat.title}</ReactMarkdown>
                   </span>
                 )}
                 <button
@@ -567,7 +562,7 @@ function App() {
               key={msg.id}
               className={`message ${msg.role === "user" ? "user" : "bot"}`}
             >
-              {msg.content}
+              <ReactMarkdown>{msg.content}</ReactMarkdown>
             </div>
           ))}
 
@@ -584,12 +579,12 @@ function App() {
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                sendToOpenAI();
+                sendToAI();
               }
             }}
             disabled={loading}
           />
-          <button onClick={sendToOpenAI} disabled={loading || !userInput.trim()}>
+          <button onClick={sendToAI} disabled={loading || !userInput.trim()}>
             Senden
           </button>
         </div>

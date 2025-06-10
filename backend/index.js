@@ -137,10 +137,16 @@ app.post("/chats/:id/messages", async (req, res) => {
 
             let botResponse;
             if (useGoogleGenAI) {
+                const geminiMessages = aiMessages.map(msg => ({
+                    role: msg.role === "user" ? "user" : "model",
+                    parts: [{ text: msg.content }]
+                }));
+
                 const completion = await ai.models.generateContent({
                     model: "gemini-2.0-flash",
-                    contents: "Explain how AI works in a few words",
+                    contents: geminiMessages,
                 });
+
                 const parts = completion.candidates[0].content.parts;
                 const fullText = parts.map(part => part.text || part.value || "").join("");
                 botResponse = { role: "model", content: fullText };
@@ -157,6 +163,7 @@ app.post("/chats/:id/messages", async (req, res) => {
             const botMsg = await createMessage(chatId, botResponse.role, botResponse.content);
 
             const messages = await getMessages(chatId);
+            let generatedTitle = "";
             if (messages.length === 2) {
                 const contextMessages = aiMessages.slice(0, 2)  // Beispiel: 2 user + 2 bot Nachrichten
 
@@ -173,25 +180,40 @@ app.post("/chats/:id/messages", async (req, res) => {
                     }
                 ];
 
-                const summaryCompletion = await openai.chat.completions.create({
-                    model: model,
-                    messages: summaryPrompt,
-                    max_tokens: 15,  // kurz halten
-                });
+                if (useGoogleGenAI) {
+                    const geminiSummary = await ai.models.generateContent({
+                        model: "gemini-2.0-flash",
+                        contents: summaryPrompt.map(msg => ({
+                            role: msg.role === "user" ? "user" : "model",
+                            parts: [{ text: msg.content }]
+                        })),
+                    });
 
-                const generatedTitle = summaryCompletion.choices[0].message.content.trim();
+                    const summaryParts = geminiSummary.candidates[0].content.parts;
+                    generatedTitle = summaryParts.map(part => part.text || part.value || "").join("").trim();
+                } else {
+                    const summaryCompletion = await openai.chat.completions.create({
+                        model: model,
+                        messages: summaryPrompt,
+                        max_tokens: 15,  // kurz halten
+                    });
 
+                    generatedTitle = summaryCompletion.choices[0].message.content.trim();
+                }
                 // Titel updaten
                 await updateChatTitle(chatId, generatedTitle);
             }
 
-            res.status(201).json(botMsg);
+            res.status(201).json({usrMsg: userMsg, botMsg: botMsg, newTitle: generatedTitle});
         } catch (error) {
             console.error(error);
-            res.status(500).json({ error: "OpenAI Anfrage fehlgeschlagen" });
+            if(useGoogleGenAI)
+                res.status(500).json({ error: "Google Gen AI Anfrage fehlgeschlagen" });
+            else
+                res.status(500).json({ error: "OpenAI Anfrage fehlgeschlagen" });
         }
     } else {
-        res.status(201).json(userMsg);
+        res.status(201).json({msg: userMsg, botMsg: "", newTitle: generatedTitle});
     }
 });
 

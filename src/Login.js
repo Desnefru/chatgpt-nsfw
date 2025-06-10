@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 
 function Login({ onLogin, onShowRegister }) {
-    const [username, setUsername] = useState("");
+    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
     const backendUrl = "http://localhost:4000";
@@ -11,16 +11,15 @@ function Login({ onLogin, onShowRegister }) {
             const resp = await fetch(`${backendUrl}/auth/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, password }),
+                body: JSON.stringify({ email, password }),
             });
 
             if (!resp.ok) throw new Error("Login fehlgeschlagen");
 
             const data = await resp.json();
-            const token = data.token;
-            localStorage.setItem("jwt", token);
+            localStorage.setItem("jwt", data.token);
             localStorage.setItem("username", data.username);
-            onLogin(token, username);
+            onLogin(data.token, data.username);
         } catch (err) {
             alert(err.message);
         }
@@ -32,15 +31,15 @@ function Login({ onLogin, onShowRegister }) {
                 <h2 className="login-header">Login</h2>
 
                 <div style={{ marginBottom: "16px" }}>
-                    <label htmlFor="username" className="login-label">
-                        Benutzername
+                    <label htmlFor="email" className="login-label">
+                        E-Mail
                     </label>
                     <input
-                        id="username"
+                        id="email"
                         className="login-input"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        placeholder="Benutzername"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="E-Mail"
                     />
                 </div>
 

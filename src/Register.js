@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 
 function Register({ onRegister }) {
+    const [email, setEmail] = useState("");
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -17,7 +18,7 @@ function Register({ onRegister }) {
             const resp = await fetch(`${backendUrl}/auth/register`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, password }),
+                body: JSON.stringify({ email, username, password }),
             });
 
             if (!resp.ok) {
@@ -33,6 +34,7 @@ function Register({ onRegister }) {
     };
 
     const handleCancel = () => {
+        setEmail("");
         setUsername("");
         setPassword("");
         setConfirmPassword("");
@@ -43,6 +45,17 @@ function Register({ onRegister }) {
         <div className="register-wrapper">
             <div className="register-container">
                 <h2 className="register-header">Registrieren</h2>
+
+                <div style={{ marginBottom: "16px" }}>
+                    <label htmlFor="E-Mail" className="register-label">E-Mail</label>
+                    <input
+                        id="email"
+                        className="register-input"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="E-Mail"
+                    />
+                </div>
 
                 <div style={{ marginBottom: "16px" }}>
                     <label htmlFor="username" className="register-label">Benutzername</label>
@@ -82,7 +95,7 @@ function Register({ onRegister }) {
                 <button style={{ marginBottom: "16px" }} className="register-button" onClick={handleRegister}>
                     Registrieren
                 </button>
-                
+
                 <button className="abbrechen-button" onClick={handleCancel}>
                     Abbrechen
                 </button>
